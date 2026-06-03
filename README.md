@@ -1,4 +1,4 @@
-# EHS Claude Skills
+# AI-CLI Skills
 
 Shared [Claude Code](https://claude.com/claude-code) skills for Episcopal High School faculty.
 
@@ -24,7 +24,7 @@ below clones this repo once, then **symlinks** each skill into that folder — s
 skill here (or running `git pull`) updates the live skill immediately, with no copying.
 
 ```bash
-git clone https://github.com/hughsibbele/ehs-claude-skills.git ~/code/ehs-claude-skills
+git clone https://github.com/hughsibbele/ai-cli-skills.git ~/code/ai-cli-skills
 ```
 
 ```bash
@@ -32,7 +32,7 @@ mkdir -p ~/.claude/skills
 ```
 
 ```bash
-ln -s ~/code/ehs-claude-skills/skills/EHS-Scheduler ~/.claude/skills/EHS-Scheduler
+ln -s ~/code/ai-cli-skills/skills/EHS-Scheduler ~/.claude/skills/EHS-Scheduler
 ```
 
 Start a new Claude Code session and type `/EHS-Scheduler` to confirm it's available.
@@ -40,7 +40,7 @@ Start a new Claude Code session and type `/EHS-Scheduler` to confirm it's availa
 ## Getting updates
 
 ```bash
-cd ~/code/ehs-claude-skills && git pull
+cd ~/code/ai-cli-skills && git pull
 ```
 
 Because the skills are symlinked, a pull propagates updates instantly — no reinstall.
