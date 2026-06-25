@@ -1,6 +1,6 @@
 ---
 name: EHS-Scheduler
-description: EHS block schedule expert — helps set Canvas assignment due dates at the correct time for the correct block, accounting for flex days, schedule overrides, breaks, and exam periods.
+description: EHS (Episcopal High School) block-schedule expert for setting Canvas assignment due dates. Use whenever setting, moving, or batch-updating a due date or time for an EHS course — it picks the correct date and exact time for the right block (A–G), accounting for the Monday vs. long-block layouts, the two-week flex cycle, schedule-override days, MRC/no-class days, breaks, exam periods, and Eastern-time DST offsets. Trigger even on casual phrasings like "set this homework due for B block next week" or "when should this be due?"
 user-invocable: true
 ---
 
@@ -10,22 +10,24 @@ You are helping an Episcopal High School teacher schedule Canvas assignment due 
 
 ## EHS Block Schedule Rules
 
-These rules are permanent and do not change year to year.
+The overall *structure* is stable year to year (Monday = all 7 short blocks; Tue–Fri = long blocks; the A/B/C and D/E/F/G meeting-day split; the two-week flex cycle). But **exact block times and flex-week phasing are verified from the school's iCal feeds each year** — don't assume they carry over. The daily iCal feed is the source of truth. (The 26-27 Monday C/D times below were corrected against the feed; an earlier version of this skill listed C at 9:45 / D at 10:30, which was wrong.)
 
 ### Weekly Block Rotation
 
 Every week follows the same pattern. Monday has all 7 blocks (short periods). Tuesday–Friday have 3–4 long blocks each.
 
-**Monday (all blocks, ~40 min each):**
+**Monday (all blocks, ~40 min each) — 26-27 times:**
 | Block | Start | End |
 |-------|-------|-----|
 | A | 8:15 AM | 8:55 AM |
 | B | 9:00 AM | 9:40 AM |
-| C | 9:45 AM | 10:25 AM |
-| D | 10:30 AM | 11:10 AM |
+| C | 10:15 AM | 10:55 AM |
+| D | 11:00 AM | 11:40 AM |
 | E | 1:05 PM | 1:45 PM |
 | F | 1:50 PM | 2:30 PM |
 | G | 2:35 PM | 3:15 PM |
+
+*Note: there is a ~35-min gap between B (ends 9:40) and C (starts 10:15) on Mondays — an all-school gathering slot.*
 
 **Tuesday (long blocks, ~75 min):**
 | Block | Start | End |
@@ -77,7 +79,9 @@ EHS runs a two-week flex cycle. Each of the 7 blocks gets one designated flex *s
 
 **IMPORTANT:** On Week 1 Thursdays, regular academic blocks still meet as normal, but there are **no flex blocks** — the school has meetings during the lunch flex period instead. The only scheduling impact is that no flex trips will occur on these days. Do NOT treat Week 1 Thursdays as no-class days.
 
-**Determining which flex week it is:** Use the flex cycle anchor date (a known Week 1 Monday, provided in the semester data below). Count the number of weeks since the anchor. Even-numbered weeks = Week 1, odd = Week 2. Specifically: `floor((date - anchor_monday) / 7) % 2`. If 0 = Week 1, if 1 = Week 2.
+**Determining which flex week it is:** Do **not** use a simple `floor((date - anchor) / 7) % 2` formula. The cycle does **not** advance on a clean 7-day cadence — it **pauses during disrupted weeks** (short weeks after long weekends, full break weeks), so a single-anchor formula drifts out of phase and gives wrong answers for stretches of the year. (Verified against the 26-27 feed: e.g. the Oct 12 short week is skipped entirely, throwing the formula off by one for weeks afterward.)
+
+Instead, look up the target date's **week-of-Monday** in the explicit Week 1 / Week 2 lists in the semester data below. Those lists are derived directly from the school's iCal feed and are authoritative. If a date's week isn't listed (opening week, break weeks, exam weeks), the flex cycle doesn't apply that week — and flex is reference-only anyway, so it has no bearing on due dates.
 
 **Flex slot assignments per week (for reference only — does NOT mean the block will actually flex):**
 
@@ -105,82 +109,122 @@ During exam weeks, the normal block schedule does not apply. Exams follow their 
 
 ---
 
-## 2025–26 Semester Calendar Data
+## 2026–27 Semester Calendar Data
 
-**Update this section each semester.** Source: school iCal feeds and Major Dates PDF.
+**Update this section each school year.** Source: school iCal feeds (daily + master) and the Major Dates PDF. Data below was extracted from the 26-27 feeds and PDF (PDF updated 6/9/26).
 
-**About Canvas grading periods:** EHS uses account-level grading periods (group_id 274). Each semester has its own id. When you call Canvas API endpoints that accept a `grading_period_id` parameter (currently `/courses/{id}/enrollments` and `/courses/{id}/students/submissions`), passing this id scopes grades and submissions to that semester only — without it, you get cumulative/lifetime data. Use `list_grading_periods` to discover the id for any course, or refer to the table below. Grading period ids are stable across all EHS courses for a given school year.
+**About Canvas grading periods:** EHS uses account-level grading periods (group_id 274). Each semester has its own id. When you call Canvas API endpoints that accept a `grading_period_id` parameter (currently `/courses/{id}/enrollments` and `/courses/{id}/students/submissions`), passing this id scopes grades and submissions to that semester only — without it, you get cumulative/lifetime data. Use `list_grading_periods` to discover the id for any course. Grading period ids are stable across all EHS courses for a given school year. **The 26-27 ids are not yet recorded below — discover them with `list_grading_periods` on any 26-27 course and fill them in.** (For reference, 25-26 used `370` for 1st Semester and `371` for 2nd Semester; 26-27 will have new ids.)
 
-### Spring 2026
+### 1st Semester (Fall 2026)
 
-- **Flex cycle anchor (Week 1 Monday):** 2026-02-02
-- **Semester start:** 2026-02-02
-- **Semester end:** 2026-05-25 (last day of classes before exams)
-- **Canvas grading period id:** `371` (title: "2nd Semester")
-- **Canvas grading period span:** 2026-01-26 → 2026-05-31 *(Canvas's date range, which extends past the actual class start date because the grading period begins the day after the 1st semester period closes)*
+- **Semester span:** 2026-08-31 → 2027-01-29
+- **Aug 31 (Mon):** Orientation Day — **no academic blocks**
+- **Sep 1 (Tue):** First Day of Classes (runs a **Modified Tuesday** schedule, see overrides)
+- **Marking Period 1 ends:** 2026-10-30
+- **Semester ends:** 2027-01-29 (Fri)
+- **Last regular class day before winter assessments:** 2026-12-11 (Fri)
+- **Canvas grading period id:** *(TBD — run `list_grading_periods`; was `370` in 25-26)*
+
+**Flex cycle — Week 1 Mondays (look up the target date's week-of-Monday here):**
+2026: Sep 7, Sep 21, Oct 5, Oct 26, Nov 9, Nov 30 · 2027: Jan 4, Jan 18
+
+**Flex cycle — Week 2 Mondays:**
+2026: Sep 14, Sep 28, Oct 19, Nov 2, Nov 16, Dec 7 · 2027: Jan 11, Jan 25
+
+*Weeks not listed (opening week of Aug 31, the Oct 12 short week, Thanksgiving week, exam/break weeks) have no normal flex rotation. Reminder: flex is reference-only and doesn't change due dates.*
 
 **Schedule overrides:**
-| Date | Override Type |
-|------|-------------|
-| 2026-02-16 (Mon) | Wednesday Class Schedule |
-| 2026-04-13 (Mon) | Friday Class Schedule |
-| 2026-04-14 (Tue) | Monday Special Schedule (50-min classes; see modified times below) |
-
-*Monday Special Schedule (4/14/2026) — all blocks, 50-min classes:*
-A 8:15–9:05, B 9:10–10:00, C 10:05–10:55, D 11:00–11:50, Lunch 11:55–12:30, E 12:35–1:25, F 1:30–2:20, G 2:25–3:15
+| Date | Override |
+|------|----------|
+| 2026-09-01 (Tue) | First day — **Modified Tuesday** (compressed): C 8:40–9:30, B 9:40–10:30, A 12:40–1:30 |
+| 2026-09-02 (Wed) | **Modified Wednesday** (compressed): E 8:40–9:30, F 9:40–10:30, G 11:15–12:05, D 1:05–1:55 |
+| 2026-10-14 (Wed) | **Monday Schedule** — all 7 blocks at standard Monday times (makeup day after Fall Long Weekend) |
+| 2026-11-02 (Mon) | **Wednesday Class Schedule** (with Chapel) — runs E/F/G/D at standard Wednesday times |
 
 **No-class days:**
 | Date | Reason |
 |------|--------|
-| 2026-02-18 | MRC Day (Homer A. Jacobs '83) |
-| 2026-04-09 (Fri) | Spring Family Weekend — no classes |
-| 2026-04-13 (Mon) | Head of School Holiday — no classes (overrides the Friday schedule listed above) |
-| 2026-04-17 (Fri) | Parent Weekend — no classes |
-| 2026-05-13 | MRC Day |
+| 2026-08-31 (Mon) | Orientation Day — no academic blocks |
+| 2026-09-14 (Mon) | MRC Day |
+| 2026-10-12 (Mon) | Fall Long Weekend return day — no classes |
+| 2026-10-13 (Tue) | No Classes |
+| 2026-10-23 (Fri) | Fall Family Weekend — no classes |
+| 2026-11-04 (Wed) | MRC Day |
+| 2027-01-18 (Mon) | MRC Day (MLK Symposium) |
 
 **Breaks (no classes, campus may be closed):**
 | Start | End | Name |
 |-------|-----|------|
-| 2026-02-28 | 2026-03-17 | Spring Break |
+| 2026-10-10 | 2026-10-13 | Fall Long Weekend *(Fri 10/9 is a class day — no afternoon options; classes resume Wed 10/14 on a Monday schedule)* |
+| 2026-11-21 | 2026-11-30 | Thanksgiving Break *(last class 11/20; resume 12/1)* |
+| 2026-12-19 | 2027-01-04 | Winter Break *(after exams; resume 1/5)* |
 
-**Exam period:**
+**Exam period (Winter Assessments):**
 | Dates | Details |
 |-------|---------|
-| 2026-05-25 | Review Day |
-| 2026-05-26 – 2026-05-29 | Spring Exams |
+| 2026-12-14 (Mon) | Review Day |
+| 2026-12-15 – 2026-12-18 | Winter Assessments |
 
-Spring exam order (two per day: 9:00–11:00 AM and 2:00–4:00 PM):
-- May 26: G Block (AM), F Block (PM)
-- May 27: E Block (AM), D Block (PM)
-- May 28: C Block (AM), B Block (PM)
-- May 29: A Block (AM)
+Winter assessment order (two per day: 9:00–11:00 AM and 2:00–4:00 PM):
+- Dec 15 (Tue): A Block (AM), B Block (PM)
+- Dec 16 (Wed): C Block (AM), D Block (PM)
+- Dec 17 (Thu): E Block (AM), F Block (PM)
+- Dec 18 (Fri): G Block (AM)
 
-### Fall 2025
+### 2nd Semester (Spring 2027)
 
-*(Partial data — fill in from school calendar)*
+- **Semester span:** 2027-02-02 → 2027-06-04
+- **Second semester begins:** 2027-02-02 (Tue)
+- **Marking Period 3 ends:** 2027-04-02
+- **Seniors' last day of classes:** 2027-04-30
+- **Last regular class day (grades 9–11):** 2027-05-28 (Fri)
+- **Canvas grading period id:** *(TBD — run `list_grading_periods`; was `371` in 25-26)*
 
-- **Flex cycle anchor (Week 1 Monday):** *(TBD — determine from iCal)*
-- **Semester start:** 2025-09-01 *(approximate)*
-- **Canvas grading period id:** `370` (title: "1st Semester")
-- **Canvas grading period span:** 2025-08-28 → 2026-01-25 *(now closed)*
+**Flex cycle — Week 1 Mondays:**
+Feb 1, Feb 15, Mar 15, Mar 29, Apr 12, Apr 26, May 10
+
+**Flex cycle — Week 2 Mondays:**
+Feb 8, Feb 22, Mar 22, Apr 5, Apr 19, May 3, May 17
+
+*Spring Break weeks (Mar 1, Mar 8) and exam week have no normal flex rotation.*
+
+**Schedule overrides:**
+| Date | Override |
+|------|----------|
+| 2027-02-15 (Mon) | **Wednesday Class Schedule** (with Chapel) — E/F/G/D at standard Wednesday times |
+| 2027-04-08 (Thu) | **Modified Monday Schedule** — all 7 blocks (compressed): A 8:15, B 9:00, C 9:45, D 10:30, E 12:35, F 1:20, G 2:00 |
+| 2027-04-26 (Mon) | **Modified Monday** — all 7 blocks; A–D at normal Monday times, afternoon shifted later: E 1:15, F 2:10, G 2:55 |
+| 2027-05-03 (Mon) | **Wednesday Class Schedule** — E/F/G/D at standard Wednesday times |
 
 **No-class days:**
 | Date | Reason |
 |------|--------|
-| 2025-10-24 (Fri) | Fall Family Weekend — no classes |
+| 2027-02-01 (Mon) | Mid-Winter Long Weekend return day — no classes |
+| 2027-02-17 (Wed) | MRC Day |
+| 2027-03-29 (Mon) | Easter Long Weekend return day — no classes |
+| 2027-04-09 (Fri) | Spring Family Weekend — no classes |
+| 2027-05-05 (Wed) | MRC Day |
 
-**Breaks:**
+**Breaks (no classes, campus may be closed):**
 | Start | End | Name |
 |-------|-----|------|
-| 2025-10-09 | 2025-10-12 | Fall Long Weekend |
-| 2025-11-21 | 2025-11-30 | Thanksgiving Break |
-| 2025-12-19 | 2026-01-04 | Winter Break |
+| 2027-01-30 | 2027-02-01 | Mid-Winter Long Weekend *(Fri 1/29 is a class day; 2nd semester begins Tue 2/2)* |
+| 2027-02-27 | 2027-03-15 | Spring Break *(last class 2/26; resume 3/16)* |
+| 2027-03-27 | 2027-03-29 | Easter Long Weekend *(Fri 3/26 is a class day — no afternoon options; resume 3/30)* |
 
-**Exam period:**
+**Exam period (Spring Assessments — grades 9–11):**
 | Dates | Details |
 |-------|---------|
-| 2025-12-14 | Review Day |
-| 2025-12-15 – 2025-12-18 | Winter Exams |
+| 2027-05-31 (Mon) | Exam Review Day (Memorial Day) |
+| 2027-06-01 – 2027-06-04 | Spring Assessments |
+
+Spring assessment order (two per day: 9:00–11:00 AM and 2:00–4:00 PM):
+- Jun 1 (Tue): G Block (AM), F Block (PM)
+- Jun 2 (Wed): E Block (AM), D Block (PM)
+- Jun 3 (Thu): C Block (AM), B Block (PM)
+- Jun 4 (Fri): A Block (AM)
+
+*(Seniors finish earlier: last classes 4/30, Baccalaureate/Awards 5/28, Commencement 5/29.)*
 
 ---
 
@@ -248,9 +292,34 @@ Use the Canvas Agent MCP tools:
 - **New assignments:** After creating the assignment, use `create_assignment_override` for each section with the correct block start time.
 - **Existing assignments:** Use `batch_update_dates` with `section_dates` to set per-section times. The tool automatically detects whether overrides exist and handles them appropriately.
 
-All times should be in **Eastern Time** (America/New_York). Convert to ISO 8601 format: e.g., `2026-02-03T10:05:00-05:00` (EST) or `2026-03-18T10:05:00-04:00` (EDT).
+All times should be in **Eastern Time** (America/New_York). Convert to ISO 8601 format: e.g., `2026-12-01T08:15:00-05:00` (EST) or `2026-09-15T08:15:00-04:00` (EDT).
 
-**Daylight saving time:** EST (UTC-5) applies roughly Nov–Mar; EDT (UTC-4) applies roughly Mar–Nov. Spring 2026: clocks spring forward on **March 8, 2026**. Always verify the correct offset for the specific date.
+**Daylight saving time (26-27):** EDT (UTC-4) applies through **Oct 31, 2026** (clocks fall back **Nov 1, 2026**), then EST (UTC-5) through winter, then clocks spring forward on **March 14, 2027** back to EDT. So: school start through Oct 31 = `-04:00`; Nov 1 → Mar 13 = `-05:00`; Mar 14 onward = `-04:00`. Always verify the correct offset for the specific date.
+
+---
+
+## Worked Examples
+
+These show the full reasoning from a teacher's request to a final ISO 8601 due datetime. Walk through the same checks every time.
+
+**Example 1 — homework, start of class (simple case):**
+Request: *"Set the B-block reading due at the start of class on Thursday, Nov 12, 2026."*
+- B meets Thursday at **8:15 AM** (Thursday long-block layout).
+- Nov 12 is a normal class day, not in a break/exam window. The week of Nov 9 is a Week 1 week, so it's a Week 1 Thursday → no flex blocks, but classes meet normally (no scheduling impact).
+- Nov 12 is after the Nov 1 fall-back, so **EST (`-05:00`)**.
+- **Result:** `2026-11-12T08:15:00-05:00`
+
+**Example 2 — classwork, end of class, multi-section, EDT:**
+Request: *"Lab writeup due at the end of class for my D-block and G-block sections on Wednesday, Sep 23, 2026."*
+- Wednesday layout: **G meets 12:35–1:50 PM**, **D meets 2:00–3:15 PM**. End of class = the block's end time.
+- Sep 23 is before the Nov 1 fall-back → **EDT (`-04:00`)**.
+- Set **per-section overrides** (default for multi-section): G section → `2026-09-23T13:50:00-04:00`; D section → `2026-09-23T15:15:00-04:00`.
+
+**Example 3 — a disrupted week (overrides + no-class days):**
+Request: *"Homework due at the start of B block the week of Oct 12, 2026."*
+- Walk the week: Mon Oct 12 = no classes (Fall Long Weekend return); Tue Oct 13 = No Classes; **Wed Oct 14 = runs a Monday schedule (all 7 blocks), so B meets that Wednesday at its Monday time, 9:00 AM**; Thu Oct 15 = normal (B at 8:15 AM); Fri Oct 16 = B doesn't meet.
+- B's first meeting that week is therefore **Wed Oct 14 at 9:00 AM** — a day B normally wouldn't meet. Flag it: *"Note: Oct 14 runs a Monday schedule, so B block meets that Wednesday at 9:00 AM."*
+- Oct 14 is before Nov 1 → EDT. **Result:** `2026-10-14T09:00:00-04:00` (or offer Thu Oct 15 at 8:15 AM if the teacher prefers B's normal day).
 
 ---
 
@@ -260,4 +329,4 @@ All times should be in **Eastern Time** (America/New_York). Convert to ISO 8601 
 - **Multiple sections in different blocks:** A teacher may have the same course in multiple blocks (e.g., D and G). By default, set **section-specific due times** using Canvas section overrides so each section's due time matches the **start of that section's block** on that day. Use `batch_update_dates` with `section_dates` for existing assignments, or `create_assignment_override` for new ones. On first use, ask the teacher if they prefer per-section times (the default), a single time for all sections, or another approach (see Step 5).
 - **Recurring assignments (e.g., weekly reading):** Map out the full date range and flag any weeks where the schedule is disrupted (breaks, MRC days, overrides). Present the full list for review.
 - **Night-before due dates:** Some teachers prefer homework due at 11:59 PM the night before class rather than at the start of class. If a teacher expresses this preference, remember it.
-- **Schedule override + flex interaction:** On an override day (e.g., Monday running Wednesday schedule), the flex slot follows the override day's schedule using the actual calendar date's flex week. Example: if Feb 16 (Monday, Week 2) runs a Wednesday schedule, G has the flex slot. However, this only matters if the teacher confirms a flex trip is happening — use normal times by default.
+- **Schedule override + flex interaction:** On an override day (e.g., Monday running Wednesday schedule), the flex slot follows the override day's schedule using the actual calendar date's flex week. Example: Nov 2, 2026 (a Monday in a Week 2 week) runs a Wednesday schedule, so G has the flex slot. However, this only matters if the teacher confirms a flex trip is happening — use normal times by default.
