@@ -23,6 +23,8 @@ EHS-specific tasks correctly. Install one, and you can invoke it by name in any 
 
 Clone this repo once, then **symlink** each skill into your assistant's skills folder — so
 editing a skill here (or running `git pull`) updates the live skill immediately, with no copying.
+Every command below is safe to re-run; if the clone says `fatal: destination path already
+exists`, the repo is already downloaded — continue to the linking step.
 
 ```bash
 git clone https://github.com/hughsibbele/ai-cli-skills.git ~/code/ai-cli-skills
@@ -32,17 +34,23 @@ git clone https://github.com/hughsibbele/ai-cli-skills.git ~/code/ai-cli-skills
 
 ```bash
 mkdir -p ~/.claude/skills
-ln -s ~/code/ai-cli-skills/skills/EHS-Scheduler ~/.claude/skills/EHS-Scheduler
-ln -s ~/code/ai-cli-skills/skills/Membean-NRI-updater ~/.claude/skills/Membean-NRI-updater
+ln -sfn ~/code/ai-cli-skills/skills/EHS-Scheduler ~/.claude/skills/EHS-Scheduler
+ln -sfn ~/code/ai-cli-skills/skills/Membean-NRI-updater ~/.claude/skills/Membean-NRI-updater
 ```
 
 **Antigravity CLI** discovers global skills in `~/.gemini/config/skills/`:
 
 ```bash
 mkdir -p ~/.gemini/config/skills
-ln -s ~/code/ai-cli-skills/skills/EHS-Scheduler ~/.gemini/config/skills/EHS-Scheduler
-ln -s ~/code/ai-cli-skills/skills/Membean-NRI-updater ~/.gemini/config/skills/Membean-NRI-updater
+ln -sfn ~/code/ai-cli-skills/skills/EHS-Scheduler ~/.gemini/config/skills/EHS-Scheduler
+ln -sfn ~/code/ai-cli-skills/skills/Membean-NRI-updater ~/.gemini/config/skills/Membean-NRI-updater
 ```
+
+(Use `-sfn`, not plain `-s`: re-running a plain `ln -s` against an existing link silently
+creates a junk link *inside* the skill folder instead of failing. On **Windows**, symlinks
+and `mkdir -p` don't work in PowerShell — copy the skill folders into the equivalent
+locations instead (`$HOME\.claude\skills\`, `$HOME\.gemini\config\skills\`), and re-copy
+after each `git pull`.)
 
 Start a new session and type `/EHS-Scheduler` (Claude Code) or just mention the task
 (Antigravity picks the skill by description) to confirm it's available.
