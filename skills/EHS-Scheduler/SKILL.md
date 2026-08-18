@@ -8,6 +8,14 @@ user-invocable: true
 
 You are helping an Episcopal High School teacher schedule Canvas assignment due dates. You have expert knowledge of the EHS block schedule and will use it to set accurate due dates and times.
 
+## Source precedence
+
+When a teacher supplies a course planning document (a scope & sequence, unit calendar, or similar), **trust it over the calendar data in this file** wherever the two disagree, and tell the teacher what the discrepancy was. Those documents are maintained against the live school calendar and have caught real gaps here — the two Family Weekend Monday overrides below were missing from this skill until a teacher's scope & sequence surfaced them in August 2026.
+
+A planning doc that lists a class-day number per week is also a free consistency check: compute how many times each block meets that week and compare. Matching counts across the whole year is strong evidence the day-to-date mapping is right; a mismatch points at either a missing override here or an ambiguity worth asking the teacher about.
+
+When you find a genuine discrepancy, offer to update this file so the correction persists.
+
 ## EHS Block Schedule Rules
 
 The overall *structure* is stable year to year (Monday = all 7 short blocks; Tue–Fri = long blocks; the A/B/C and D/E/F/G meeting-day split; the two-week flex cycle). But **exact block times and flex-week phasing are verified from the school's iCal feeds each year** — don't assume they carry over. The daily iCal feed is the source of truth. (The 26-27 Monday C/D times below were corrected against the feed; an earlier version of this skill listed C at 9:45 / D at 10:30, which was wrong.)
@@ -103,6 +111,10 @@ When an override is in effect:
 - The flex cycle position still follows the **actual calendar date** (not the override)
 - Flag this to the teacher: "Note: [date] runs a [override] schedule"
 
+**Family Weekend pattern:** when a Friday is lost to Family Weekend, the Monday of that same week runs a **Friday schedule** to make it up. This happened twice in 26-27 (Mon 10/19 for Fri 10/23; Mon 4/5 for Fri 4/9). Expect this pairing in future years and verify it against the feed — it is easy to miss because the Monday looks ordinary on the calendar. The consequence is significant: **A/B/C do not meet at all that Monday**, so an A/B/C section loses a meeting that week while a D/E/F/G section keeps its normal count.
+
+**Unbalanced weeks:** when a teacher has one section in A/B/C and another in D/E/F/G, most weeks give both the same number of meetings — but override weeks can break that symmetry. The clearest 26-27 case is the week of Apr 5, 2027: Mon 4/5 runs a Friday schedule *and* Thu 4/8 is a modified Monday running all 7 blocks, so a D/E/F/G section gets **three** meetings while an A/B/C section gets **two**. When a course plan numbers its class days, always compare the meeting count per section against the plan's numbered days for that week; a mismatch means you must ask the teacher which meetings carry the numbered content rather than guessing.
+
 ### Exam Periods
 
 During exam weeks, the normal block schedule does not apply. Exams follow their own schedule (typically two exams per day: 9:00–11:00 AM and 2:00–4:00 PM). A review day usually precedes exams. Do not schedule regular assignments due during exam periods.
@@ -123,7 +135,7 @@ During exam weeks, the normal block schedule does not apply. Exams follow their 
 - **Marking Period 1 ends:** 2026-10-30
 - **Semester ends:** 2027-01-29 (Fri)
 - **Last regular class day before winter assessments:** 2026-12-11 (Fri)
-- **Canvas grading period id:** *(TBD — run `list_grading_periods`; was `370` in 25-26)*
+- **Canvas grading period id:** `374` (verified 2026-08 via `list_grading_periods`; was `370` in 25-26)
 
 **Flex cycle — Week 1 Mondays (look up the target date's week-of-Monday here):**
 2026: Sep 7, Sep 21, Oct 5, Oct 26, Nov 9, Nov 30 · 2027: Jan 4, Jan 18
@@ -139,18 +151,28 @@ During exam weeks, the normal block schedule does not apply. Exams follow their 
 | 2026-09-01 (Tue) | First day — **Modified Tuesday** (compressed): C 8:40–9:30, B 9:40–10:30, A 12:40–1:30 |
 | 2026-09-02 (Wed) | **Modified Wednesday** (compressed): E 8:40–9:30, F 9:40–10:30, G 11:15–12:05, D 1:05–1:55 |
 | 2026-10-14 (Wed) | **Monday Schedule** — all 7 blocks at standard Monday times (makeup day after Fall Long Weekend) |
+| 2026-10-19 (Mon) | **Friday Schedule** — runs G/D/E/F at standard Friday times (compensates for Fall Family Weekend on Fri 10/23). **A, B, and C do not meet this Monday.** |
 | 2026-11-02 (Mon) | **Wednesday Class Schedule** (with Chapel) — runs E/F/G/D at standard Wednesday times |
 
 **No-class days:**
 | Date | Reason |
 |------|--------|
 | 2026-08-31 (Mon) | Orientation Day — no academic blocks |
-| 2026-09-14 (Mon) | MRC Day |
+| 2026-09-14 (Mon) | MRC Day (freshmen on Burch — see note below) |
+| 2026-09-15 (Tue) | *9th grade only:* Burch backpacking trip — no classes for freshmen |
+| 2026-09-16 (Wed) | *9th grade only:* Burch Reflection — no regular classes for freshmen |
 | 2026-10-12 (Mon) | Fall Long Weekend return day — no classes |
-| 2026-10-13 (Tue) | No Classes |
+| 2026-10-13 (Tue) | No Classes (9th grade Civics Day) |
 | 2026-10-23 (Fri) | Fall Family Weekend — no classes |
 | 2026-11-04 (Wed) | MRC Day |
 | 2027-01-18 (Mon) | MRC Day (MLK Symposium) |
+
+**Burch week (Sep 14–18, 2026) — grade-specific:**
+The Monday MRC day (9/14) coincides with the 9th-grade Burch backpacking trip.
+- **Grades 10–12:** no class Monday 9/14; normal classes Tuesday–Friday.
+- **Grade 9 (FLC and other freshman courses):** no class Monday 9/14, Tuesday 9/15, or Wednesday 9/16 (Wednesday is the Burch Reflection). Normal classes Thursday 9/17 and Friday 9/18.
+
+So for a freshman course that week, blocks A/B/C meet **once** (Thursday) and blocks D/E/F/G meet **once** (Friday). Always ask which grade the course serves before scheduling in this week.
 
 **Breaks (no classes, campus may be closed):**
 | Start | End | Name |
@@ -178,7 +200,7 @@ Winter assessment order (two per day: 9:00–11:00 AM and 2:00–4:00 PM):
 - **Marking Period 3 ends:** 2027-04-02
 - **Seniors' last day of classes:** 2027-04-30
 - **Last regular class day (grades 9–11):** 2027-05-28 (Fri)
-- **Canvas grading period id:** *(TBD — run `list_grading_periods`; was `371` in 25-26)*
+- **Canvas grading period id:** `375` (verified 2026-08 via `list_grading_periods`; was `371` in 25-26)
 
 **Flex cycle — Week 1 Mondays:**
 Feb 1, Feb 15, Mar 15, Mar 29, Apr 12, Apr 26, May 10
@@ -192,6 +214,7 @@ Feb 8, Feb 22, Mar 22, Apr 5, Apr 19, May 3, May 17
 | Date | Override |
 |------|----------|
 | 2027-02-15 (Mon) | **Wednesday Class Schedule** (with Chapel) — E/F/G/D at standard Wednesday times |
+| 2027-04-05 (Mon) | **Friday Schedule** — runs G/D/E/F at standard Friday times (compensates for Spring Family Weekend on Fri 4/9). **A, B, and C do not meet this Monday.** |
 | 2027-04-08 (Thu) | **Modified Monday Schedule** — all 7 blocks (compressed): A 8:15, B 9:00, C 9:45, D 10:30, E 12:35, F 1:20, G 2:00 |
 | 2027-04-26 (Mon) | **Modified Monday** — all 7 blocks; A–D at normal Monday times, afternoon shifted later: E 1:15, F 2:10, G 2:55 |
 | 2027-05-03 (Mon) | **Wednesday Class Schedule** — E/F/G/D at standard Wednesday times |
