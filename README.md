@@ -1,41 +1,51 @@
 # AI-CLI Skills
 
-Shared [Claude Code](https://claude.com/claude-code) skills for Episcopal High School faculty.
+Shared AI-assistant skills for Episcopal High School faculty. They work with
+[Claude Code](https://claude.com/claude-code) and with Google's Antigravity CLI.
 
-These are reusable "skills" — packaged instructions that teach Claude Code how to do
-EHS-specific tasks correctly. Install one, and you can invoke it by name in any Claude
-Code session.
+These are reusable "skills" — packaged instructions that teach your AI assistant how to do
+EHS-specific tasks correctly. Install one, and you can invoke it by name in any session.
 
 ## Skills in this repo
 
 | Skill | Invoke with | What it does |
 |-------|-------------|--------------|
 | **EHS-Scheduler** | `/EHS-Scheduler` | Sets Canvas assignment due dates at the right time for the right block — accounts for the EHS block rotation, the two-week flex cycle, schedule-override days, no-class days, breaks, and exam periods. |
+| **Membean-NRI-updater** | `/Membean-NRI-updater` | Grades weekly Membean and NoRedInk completion assignments in Canvas from the CSV reports you download — applies 1/0 completion grades, per-student progress comments, missing flags, NRI late makeups, break-training credit, and end-of-semester reconciliation. |
 
-> **Prerequisite:** EHS-Scheduler is designed to be used alongside the **canvas-agent MCP**
-> (it calls Canvas tools like `update_assignment_dates`, `create_assignment_override`, and
-> `batch_update_dates`). It still gives correct dates/times without it, but the "set it in
-> Canvas for me" steps need canvas-agent connected.
+> **Prerequisite:** both skills are designed to be used alongside the **canvas-agent MCP**
+> ([setup guide](https://hughsibbele.github.io/Canvas-Agent/)) — they call Canvas tools like
+> `update_assignment_dates`, `batch_update_dates`, `list_submissions`, and `grade_submission`.
+> EHS-Scheduler still gives correct dates/times without it, but the "set it in Canvas for me"
+> steps need canvas-agent connected. Membean-NRI-updater requires it.
 
 ## Install (per machine)
 
-Claude Code automatically discovers personal skills in `~/.claude/skills/`. The pattern
-below clones this repo once, then **symlinks** each skill into that folder — so editing a
-skill here (or running `git pull`) updates the live skill immediately, with no copying.
+Clone this repo once, then **symlink** each skill into your assistant's skills folder — so
+editing a skill here (or running `git pull`) updates the live skill immediately, with no copying.
 
 ```bash
 git clone https://github.com/hughsibbele/ai-cli-skills.git ~/code/ai-cli-skills
 ```
 
+**Claude Code** discovers personal skills in `~/.claude/skills/`:
+
 ```bash
 mkdir -p ~/.claude/skills
+ln -s ~/code/ai-cli-skills/skills/EHS-Scheduler ~/.claude/skills/EHS-Scheduler
+ln -s ~/code/ai-cli-skills/skills/Membean-NRI-updater ~/.claude/skills/Membean-NRI-updater
 ```
+
+**Antigravity CLI** discovers global skills in `~/.gemini/config/skills/`:
 
 ```bash
-ln -s ~/code/ai-cli-skills/skills/EHS-Scheduler ~/.claude/skills/EHS-Scheduler
+mkdir -p ~/.gemini/config/skills
+ln -s ~/code/ai-cli-skills/skills/EHS-Scheduler ~/.gemini/config/skills/EHS-Scheduler
+ln -s ~/code/ai-cli-skills/skills/Membean-NRI-updater ~/.gemini/config/skills/Membean-NRI-updater
 ```
 
-Start a new Claude Code session and type `/EHS-Scheduler` to confirm it's available.
+Start a new session and type `/EHS-Scheduler` (Claude Code) or just mention the task
+(Antigravity picks the skill by description) to confirm it's available.
 
 ## Getting updates
 
@@ -45,6 +55,49 @@ cd ~/code/ai-cli-skills && git pull
 
 Because the skills are symlinked, a pull propagates updates instantly — no reinstall.
 
+## Membean-NRI-updater: Canvas setup and weekly routine
+
+### One-time Canvas setup
+
+The skill grades existing Canvas assignments — it doesn't invent them. Your course needs:
+
+1. **Assignment groups** named **Membean** and (FLC only) **NoRedInk**, each weighted **5%**
+   of the course grade.
+2. **One assignment per week** in each group, named exactly **"Membean"** / **"NoRedInk"**,
+   worth **1 point**, submission type **"No submission"**, due **Sunday at 10:00 PM Eastern**.
+
+The easiest way to create a semester's worth is to ask your assistant: *"Create a 1-point
+no-submission assignment named Membean in the Membean group, due every Sunday at 10 PM from
+[semester start] to [semester end]"* — it will use canvas-agent to build them all.
+
+3. **First run only:** open `skills/Membean-NRI-updater/SKILL.md` and fill in the
+   **NRI Assignment Schedule** table (which NoRedInk topic is due which Sunday). Membean
+   grading works without it; NRI grading needs it.
+
+### Weekly routine
+
+1. Download this week's reports to your **Downloads** folder: the per-class **Report CSV**
+   from Membean (one per class), and — for FLC — the **gradebook export CSV** from NoRedInk.
+2. Open your assistant and say something like *"Run the Membean updater"* (or
+   `/Membean-NRI-updater` in Claude Code).
+3. The skill finds the CSVs, matches them to your Canvas courses, checks thresholds
+   (30 min for FLC, 45 min for everyone else, 60% accuracy; NRI must be fully complete),
+   scans the last 4 weeks for NRI makeups, and **shows you a full summary of every grade and
+   comment before touching Canvas**.
+4. Confirm, and it applies grades, progress comments, and missing flags in one pass.
+
+There are two occasional extra passes, both described in the SKILL.md: **break-training
+credit** (run after a break with Membean's break report) and **end-of-semester
+reconciliation** (excuses surplus Membean weeks so the total lands on the 15-week
+requirement).
+
+### Customizing for your courses
+
+Everything course-specific is plain text in `skills/Membean-NRI-updater/SKILL.md`:
+the minutes/accuracy thresholds, the 15-weeks-for-full-credit rule, the comment wording,
+and the NRI topic schedule. Edit them to match your own rules — the workflow logic doesn't
+care what the numbers are.
+
 ## Keeping the calendar current
 
 EHS-Scheduler has two kinds of knowledge:
@@ -53,7 +106,7 @@ EHS-Scheduler has two kinds of knowledge:
    these don't change year to year.
 2. **Per-semester calendar data** (semester start/end, no-class days, MRC days, schedule
    overrides, break dates, exam order, Canvas grading-period IDs) — under the
-   `Semester Calendar Data` section (e.g. `## 2025–26 Semester Calendar Data`) in
+   `Semester Calendar Data` section (e.g. `## 2026–27 Semester Calendar Data`) in
    `skills/EHS-Scheduler/SKILL.md`.
 
 At the start of each semester, update section #2 from the school's iCal feeds and the
