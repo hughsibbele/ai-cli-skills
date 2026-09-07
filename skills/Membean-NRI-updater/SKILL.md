@@ -172,7 +172,7 @@ For each entry in `membean.students`:
 
 1. **minutes** and **accuracy** are integers; **dubious_minutes** is Membean's flag.
 2. **Evaluate** (this produces a **detail string** that gets folded into the full comment in Step 6):
-   - If minutes = 0 and accuracy = 0 → **Incomplete**, detail: `"Did not train this week."`
+   - If minutes = 0 and accuracy = 0 → **Incomplete**, **no detail** (the lead line already says they didn't do it)
    - If minutes < threshold → **Incomplete**, detail: `"[X]/[threshold] minutes."`
    - If accuracy < 60 → **Incomplete**, detail: `"[X]% accuracy (60% needed)."`
    - If both short → **Incomplete**, detail: `"[X]/[threshold] minutes, [X]% accuracy (60% needed)."`
@@ -184,7 +184,7 @@ Incomplete Membean gets **score 0 + `late_policy_status: "missing"`**; complete 
 
 **Roster members in no CSV** (`roster_not_in_csvs`): list their tokens in the summary and leave them ungraded unless the teacher says otherwise.
 
-**Test Student** (`test_students` in the prep file): Canvas's built-in Test Student is in every course and never in a CSV. Grade it as a **missed week every run** — Membean **and** NRI — with the normal incomplete comment (detail `"Did not train this week."` / `"[topic] not attempted."`) and the missing flag. The teacher uses Student View on it to show students what a missed week looks like. Its progress line will read 0 of Y; that's expected. Never excuse it at end of semester.
+**Test Student** (`test_students` in the prep file): Canvas's built-in Test Student is in every course and never in a CSV. Grade it as a **missed week every run** — Membean **and** NRI — with the normal incomplete comment (no detail for Membean; `"[topic] not attempted."` for NRI) and the missing flag. The teacher uses Student View on it to show students what a missed week looks like. Its progress line will read 0 of Y; that's expected. Never excuse it at end of semester.
 
 ### Step 5: Process NoRedInk (FLC only)
 
@@ -223,7 +223,7 @@ Students can make up missed NRI assignments up to a month after they were due. C
 **Comment templates** (lead line states this assignment's status, then the progress line):
 
 - **Membean — complete:** `"You did your Membean this week! " + progress line`
-- **Membean — incomplete:** `"You didn't do your Membean this week. [detail from Step 4] " + progress line`
+- **Membean — incomplete:** `"You didn't do your Membean this week. [detail from Step 4, if any] " + progress line` — with no detail this is just `"You didn't do your Membean this week. " + progress line`
 - **NoRedInk — complete:** `"You did your NoRedInk this week! " + progress line`
 - **NoRedInk — incomplete:** `"You didn't do your NoRedInk this week. [detail from Step 5] Must complete by [deadline] for makeup credit. " + progress line`
 - **NoRedInk — makeup:** `"Makeup completed — [topic name]. " + progress line`
@@ -362,6 +362,6 @@ Run once near the semester end — for Membean/NRI that's the **Sunday before sp
 - **Canvas assignment already has grades**: show existing grades in the summary and ask before overwriting. If a student already has 1/1, don't downgrade.
 - **No `nri` block in the prep file**: skip the NRI section entirely — just process Membean.
 - **No `membean` block**: skip the Membean section — just process NRI.
-- **Membean accuracy 0 with 0 minutes**: use the single detail `"Did not train this week."` rather than listing both metrics.
+- **Membean accuracy 0 with 0 minutes**: no detail string at all — "You didn't do your Membean this week." already says it. Never write "Did not train this week."
 - **Test Student**: always graded as a missed week (see Step 4) — never skipped, never excused. If `test_students` is empty but `list_submissions` shows one more user than the prep file covers, ask the teacher whether that token is the Test Student.
 - **Prep file older than the CSVs, from a different course, or a stale manifest**: check `generated_at`, `csv_date`, and `course_id` and ask for a fresh `membean-prep` run.
