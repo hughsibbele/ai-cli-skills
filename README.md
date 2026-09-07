@@ -94,21 +94,53 @@ runs on your machine, matches the CSV names against canvas-agent's local vault, 
 JSON file holding only tokens, Canvas user ids, and the numbers. The assistant reads that file,
 never the CSVs, so names stay off the wire. Rows it can't match are reported by row number.
 
-### Weekly routine
+### One-time setup on your machine
 
-1. Download this week's reports to **Downloads**: the **Report CSV** from Membean (one per
-   Membean class) and — for FLC — the **gradebook export CSV** from NoRedInk.
-2. Run the prep script once per Canvas course. For an FLC course:
+Create the config that tells the weekly command which courses you teach and what your
+Membean export filenames start with:
 
 ```bash
-node ~/code/ai-cli-skills/skills/Membean-NRI-updater/scripts/prep.mjs --course 8449 --membean ~/Downloads/Report.csv --nri ~/Downloads/noredink-gradebook.csv --out ~/Downloads/prep-8449.json
+node ~/code/ai-cli-skills/skills/Membean-NRI-updater/scripts/weekly.mjs --init
 ```
 
-   For a Membean-only course, leave off `--nri`. If it reports "no vault for course", open
-   your assistant and ask it to `list_students` for that course, then rerun.
+Then open `~/.membean-nri/config.json` in your editor and fill in each course's Canvas id,
+a short name, the start of its Membean Report filename (Membean names exports after the
+class, e.g. `Flc-Report-2026-09-07.csv` → pattern `Flc-Report`), and whether it uses NRI.
 
-3. Open your assistant and say *"Run the Membean updater on ~/Downloads/prep-8449.json"* (or
-   `/Membean-NRI-updater` in Claude Code).
+Give yourself a one-word command by adding this line to `~/.zshrc` (then open a new terminal):
+
+```bash
+alias membean-prep="node ~/code/ai-cli-skills/skills/Membean-NRI-updater/scripts/weekly.mjs"
+```
+
+### Weekly routine
+
+1. Download this week's reports to **Downloads**: the **Report CSV** from Membean for each
+   course and — for FLC — the **gradebook export CSV** from NoRedInk. Leave the filenames as
+   the sites produce them.
+2. Run the one command:
+
+```bash
+membean-prep
+```
+
+   It shows which files it picked, warns if they're from different weeks or older than a
+   week, writes the token-only prep files to `~/Downloads/membean-prep/`, and prints the
+   line for step 3. If it reports "no vault for course", ask your assistant to
+   `list_students` for that course, then rerun. Add `--dry-run` to see the file choices
+   without running anything.
+
+   Old exports can stay in Downloads: the newest file by the date in its name wins, and
+   browser re-downloads like `Flc-Report-2026-09-07 (1).csv` are resolved to the most
+   recently saved copy. Every file it passed over is listed under "Notes". To redo an
+   earlier week, add `--date 2026-08-30`.
+
+3. Open your assistant and say:
+
+```
+/Membean-NRI-updater Grade this week from the latest prep files
+```
+
 4. The skill finds the week's assignments by due date, checks thresholds (30 min for FLC,
    45 min for everyone else, 60% accuracy; NRI must be fully complete), scans the last 4
    weeks for NRI makeups, and **shows you a full summary of every grade and comment before
@@ -121,8 +153,9 @@ class exactly what a missed week looks like.
 
 **Nicknames:** if the same student is unmatched every week (Membean says "Kate", Canvas says
 "Katherine"), make a two-column CSV on your machine — export name, Canvas name, both as
-`Last, First` — and add `--aliases ~/path/aliases.csv` to the prep command. Keep that file
-private; it contains names.
+`Last, First` — and point to it with `"aliases": "~/.membean-nri/aliases.csv"` in the config
+(top level for all courses, or inside a course entry). Keep that file private; it contains
+names.
 
 There are two occasional extra passes, both described in the SKILL.md: **break-training
 credit** (run after a break with Membean's break report, through the same prep script) and

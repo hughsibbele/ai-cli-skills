@@ -121,9 +121,16 @@ If the Canvas name has no colon, ask the teacher which CSV column it corresponds
 
 ## Workflow
 
-### Step 1: Get the prep file
+### Step 1: Get the prep files
 
-Ask the teacher to run the prep script (or run it yourself with Bash if they've saved the CSVs — it prints only counts and row numbers). One run per Canvas course:
+The teacher normally runs one unchanging command (`membean-prep`, an alias for `scripts/weekly.mjs`) that finds this week's CSV exports in Downloads, runs `scripts/prep.mjs` for every course in their local config, and writes:
+
+- `~/Downloads/membean-prep/prep-<course_id>-<date>.json` — one token-only prep file per course
+- `~/Downloads/membean-prep/latest.json` — a manifest listing those files, the CSV names, and the CSV date
+
+**When the teacher says "grade this week from the latest prep files"** (or gives no file at all): read `~/Downloads/membean-prep/latest.json`, then read each `prep_file` it lists. If the manifest's `csv_date` or `generated_at` is more than a week old, say so and ask whether to continue. If the teacher names prep files explicitly, read those instead.
+
+If the teacher hasn't run the prep yet, ask them to run `membean-prep` (or run it yourself with Bash — it prints only counts, filenames, and row numbers). For a one-off course the underlying script can be run directly:
 
 ```
 node ~/code/ai-cli-skills/skills/Membean-NRI-updater/scripts/prep.mjs --course <course_id> --membean <Membean Report CSV> --nri <NRI gradebook CSV> --out <prep.json>
@@ -132,9 +139,9 @@ node ~/code/ai-cli-skills/skills/Membean-NRI-updater/scripts/prep.mjs --course <
 - Omit `--nri` for Membean-only courses. Repeat `--membean` if Membean was split into several classes.
 - `--aliases <csv>` points at an optional local two-column file (export name, Canvas sortable name) for nicknames the script can't resolve on its own. It stays on the teacher's machine.
 - The script needs the course's vault file. If it says there is no vault, run `list_students` on the course (that populates it), then rerun.
-- Read the JSON with the Read tool. **If the prep file contains anything that looks like a real name, stop and tell the teacher; do not continue.**
+- **If a prep file contains anything that looks like a real name, stop and tell the teacher; do not continue.**
 
-Report the script's summary line to the teacher: matched / unmatched / ambiguous counts, unmatched row numbers, and how many roster members appear in no CSV. Unmatched rows are the teacher's to resolve (fix the CSV, add an alias, or skip).
+Report each course's summary to the teacher: matched / unmatched / ambiguous counts, unmatched row numbers, and how many roster members appear in no CSV. Unmatched rows are the teacher's to resolve (fix the CSV, add an alias, or skip).
 
 ### Step 2: Identify Courses
 
@@ -355,4 +362,4 @@ Run once near the semester end — for Membean/NRI that's the **Sunday before sp
 - **No `membean` block**: skip the Membean section — just process NRI.
 - **Membean accuracy 0 with 0 minutes**: use the single detail `"Did not train this week."` rather than listing both metrics.
 - **Test Student**: always graded as a missed week (see Step 4) — never skipped, never excused. If `test_students` is empty but `list_submissions` shows one more user than the prep file covers, ask the teacher whether that token is the Test Student.
-- **Prep file older than the CSVs, or from a different course**: check `generated_at` and `course_id` and ask for a fresh run.
+- **Prep file older than the CSVs, from a different course, or a stale manifest**: check `generated_at`, `csv_date`, and `course_id` and ask for a fresh `membean-prep` run.
