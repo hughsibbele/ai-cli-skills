@@ -11,7 +11,7 @@ EHS-specific tasks correctly. Install one, and you can invoke it by name in any 
 | Skill | Invoke with | What it does |
 |-------|-------------|--------------|
 | **EHS-Scheduler** | `/EHS-Scheduler` | Sets Canvas assignment due dates at the right time for the right block — accounts for the EHS block rotation, the two-week flex cycle, schedule-override days, no-class days, breaks, and exam periods. |
-| **Membean-NRI-updater** | `/Membean-NRI-updater` | Grades weekly Membean and NoRedInk completion assignments in Canvas from the CSV reports you download — applies 1/0 completion grades, per-student progress comments, missing flags, NRI late makeups, break-training credit, and end-of-semester reconciliation. |
+| **Membean-NRI-updater** | `/Membean-NRI-updater` | Grades weekly Membean and NoRedInk completion assignments in Canvas from the CSV reports you download — applies 1/0 completion grades, per-student progress comments, missing flags, NRI late makeups, break-training credit, and end-of-semester reconciliation. Ships with a local prep script that keeps student names out of the AI conversation. |
 
 > **Prerequisite:** both skills are designed to be used alongside the **canvas-agent MCP**
 > ([setup guide](https://hughsibbele.github.io/Canvas-Agent/)) — they call Canvas tools like
@@ -69,42 +69,73 @@ Because the skills are symlinked, a pull propagates updates instantly — no rei
 
 The skill grades existing Canvas assignments — it doesn't invent them. Your course needs:
 
-1. **Assignment groups** named **Membean** and (FLC only) **NoRedInk**, each weighted **5%**
-   of the course grade.
-2. **One assignment per week** in each group, named exactly **"Membean"** / **"NoRedInk"**,
-   worth **1 point**, submission type **"No submission"**, due **Sunday at 10:00 PM Eastern**.
+1. **Assignment groups** named **Membean** and (FLC only) **NRI** or **NoRedInk**, each weighted
+   **5%** of the course grade.
+2. **One assignment per week** in each group, worth **1 point**, submission type
+   **"No submission"**, due **Sunday at 10:00 PM Eastern**. The name must *contain*
+   "Membean" or "NoRedInk". Recommended names: **`Membean Week N`** and
+   **`NoRedInk: <topic>`**, where the topic is the assignment name exactly as NoRedInk shows
+   it — the skill reads the week's NRI topic from the Canvas name, so there is no schedule
+   table to maintain.
 
 The easiest way to create a semester's worth is to ask your assistant: *"Create a 1-point
-no-submission assignment named Membean in the Membean group, due every Sunday at 10 PM from
-[semester start] to [semester end]"* — it will use canvas-agent to build them all.
+no-submission assignment named Membean Week N in the Membean group, due every Sunday at 10 PM
+from [semester start] to [semester end], skipping break and exam weeks"* — it will use
+canvas-agent to build them all.
 
-3. **First run only:** open `skills/Membean-NRI-updater/SKILL.md` and fill in the
-   **NRI Assignment Schedule** table (which NoRedInk topic is due which Sunday). Membean
-   grading works without it; NRI grading needs it.
+3. **Node 18+** on your machine (`node --version`). The prep script below has no other
+   dependencies.
+
+### Why there is a prep script
+
+canvas-agent hides student names from the AI (it sees `Student_xxxxxx` tokens), but the
+Membean and NoRedInk exports contain real names. `skills/Membean-NRI-updater/scripts/prep.mjs`
+runs on your machine, matches the CSV names against canvas-agent's local vault, and writes a
+JSON file holding only tokens, Canvas user ids, and the numbers. The assistant reads that file,
+never the CSVs, so names stay off the wire. Rows it can't match are reported by row number.
 
 ### Weekly routine
 
-1. Download this week's reports to your **Downloads** folder: the per-class **Report CSV**
-   from Membean (one per class), and — for FLC — the **gradebook export CSV** from NoRedInk.
-2. Open your assistant and say something like *"Run the Membean updater"* (or
+1. Download this week's reports to **Downloads**: the **Report CSV** from Membean (one per
+   Membean class) and — for FLC — the **gradebook export CSV** from NoRedInk.
+2. Run the prep script once per Canvas course. For an FLC course:
+
+```bash
+node ~/code/ai-cli-skills/skills/Membean-NRI-updater/scripts/prep.mjs --course 8449 --membean ~/Downloads/Report.csv --nri ~/Downloads/noredink-gradebook.csv --out ~/Downloads/prep-8449.json
+```
+
+   For a Membean-only course, leave off `--nri`. If it reports "no vault for course", open
+   your assistant and ask it to `list_students` for that course, then rerun.
+
+3. Open your assistant and say *"Run the Membean updater on ~/Downloads/prep-8449.json"* (or
    `/Membean-NRI-updater` in Claude Code).
-3. The skill finds the CSVs, matches them to your Canvas courses, checks thresholds
-   (30 min for FLC, 45 min for everyone else, 60% accuracy; NRI must be fully complete),
-   scans the last 4 weeks for NRI makeups, and **shows you a full summary of every grade and
-   comment before touching Canvas**.
-4. Confirm, and it applies grades, progress comments, and missing flags in one pass.
+4. The skill finds the week's assignments by due date, checks thresholds (30 min for FLC,
+   45 min for everyone else, 60% accuracy; NRI must be fully complete), scans the last 4
+   weeks for NRI makeups, and **shows you a full summary of every grade and comment before
+   touching Canvas**.
+5. Confirm, and it applies grades, progress comments, and missing flags in one pass.
+
+**Test Student:** Canvas's Student View account is graded as a missed week every run (0, missing
+flag, the usual "you didn't do it" comment), so you can open Student View any time to show a
+class exactly what a missed week looks like.
+
+**Nicknames:** if the same student is unmatched every week (Membean says "Kate", Canvas says
+"Katherine"), make a two-column CSV on your machine — export name, Canvas name, both as
+`Last, First` — and add `--aliases ~/path/aliases.csv` to the prep command. Keep that file
+private; it contains names.
 
 There are two occasional extra passes, both described in the SKILL.md: **break-training
-credit** (run after a break with Membean's break report) and **end-of-semester
-reconciliation** (excuses surplus Membean weeks so the total lands on the 15-week
-requirement).
+credit** (run after a break with Membean's break report, through the same prep script) and
+**end-of-semester reconciliation** (excuses surplus Membean weeks so the total lands on the
+15-week requirement). Both must happen **before the grading period closes** — at EHS, the
+1st-semester period closes the night of Feb 1, so January is when winter-break credit and
+the last fall NRI makeups get applied.
 
 ### Customizing for your courses
 
 Everything course-specific is plain text in `skills/Membean-NRI-updater/SKILL.md`:
-the minutes/accuracy thresholds, the 15-weeks-for-full-credit rule, the comment wording,
-and the NRI topic schedule. Edit them to match your own rules — the workflow logic doesn't
-care what the numbers are.
+the minutes/accuracy thresholds, the 15-weeks-for-full-credit rule, and the comment wording.
+Edit them to match your own rules — the workflow logic doesn't care what the numbers are.
 
 ## Keeping the calendar current
 
