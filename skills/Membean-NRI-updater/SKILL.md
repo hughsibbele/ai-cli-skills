@@ -88,7 +88,7 @@ A missed Membean *class* week can't be trained retroactively. But students can t
 ### Missing flags
 
 - An incomplete Membean/NRI gets **score 0 AND `late_policy_status: "missing"`** in the weekly run.
-- These assignments are **"No submission"** type. Canvas does **not** auto-flag no-submission assignments missing, but you **can** set `missing` manually via the API (that's the same call the Grade Detail Tray makes) — so set it explicitly. **Verify it sticks on the first real assignment of the year** (re-read the submission after grading and confirm `missing: true`); if Canvas refuses to hold a manual missing on a no-submission assignment, the fallback is to switch these assignments to **"On paper"** submission type.
+- These assignments are **"No submission"** type. Canvas does **not** auto-flag no-submission assignments missing, but you **can** set `missing` manually via the API (that's the same call the Grade Detail Tray makes) — so set it explicitly. Verified 2026-09-07: a manual `missing` set through `grade_submission` sticks on no-submission assignments (re-read via `list_submissions` shows `missing: true`). If a future Canvas release stops honouring it, the fallback is to switch these assignments to **"On paper"** submission type.
 - **NRI missing comments must include the makeup deadline** (due date + 4 weeks) — see the late window below.
 
 ### Late / makeup completion
@@ -116,6 +116,8 @@ There is no hand-maintained topic table. The FLC NRI assignments are named `NoRe
 4. Look up that topic in the prep file's `nri.topics` list (exact match after trimming; if no exact match, try case-insensitive and tell the teacher which Canvas name and which CSV header you paired).
 
 If the Canvas name has no colon, ask the teacher which CSV column it corresponds to.
+
+**Diagnostics can't be graded from the export.** A NoRedInk diagnostic (e.g. "Parts of Speech Diagnostic") shows `- pts` in the max-points row and no score for anyone, so the prep file has `max_points: null` and all-null scores. Don't mark it incomplete for everyone. Tell the teacher and ask whether to skip the assignment, mark everyone complete, or take a list of tokens who didn't finish it.
 
 ---
 
