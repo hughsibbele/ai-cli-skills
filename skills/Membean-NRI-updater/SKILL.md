@@ -184,7 +184,7 @@ Incomplete Membean gets **score 0 + `late_policy_status: "missing"`**; complete 
 
 **Roster members in no CSV** (`roster_not_in_csvs`): list their tokens in the summary and leave them ungraded unless the teacher says otherwise.
 
-**Test Student** (`test_students` in the prep file): Canvas's built-in Test Student is in every course and never in a CSV. Grade it as a **missed week every run** — Membean **and** NRI — with the normal incomplete comment (no detail for Membean; `"[topic] not attempted."` for NRI) and the missing flag. The teacher uses Student View on it to show students what a missed week looks like. Its progress line will read 0 of Y; that's expected. Never excuse it at end of semester.
+**Test Student** (`test_students` in the prep file): Canvas's built-in Test Student is in every course and never in a CSV. Grade it as a **missed week every run** — Membean **and** NRI — with the normal incomplete comment and the missing flag. The teacher uses Student View on it to show students what a missed week looks like. Its progress line will read 0 of Y; that's expected. Never excuse it at end of semester.
 
 ### Step 5: Process NoRedInk (FLC only)
 
@@ -192,12 +192,11 @@ Incomplete Membean gets **score 0 + `late_policy_status: "missing"`**; complete 
 
 1. Derive this week's topic from the Canvas assignment name (see *NRI topics come from Canvas*).
 2. Read its max points from `nri.topics`.
-3. For each entry in `nri.students`, read `scores[topic]` (this produces a **detail string** for Step 6):
+3. For each entry in `nri.students`, read `scores[topic]`:
    - Score = max points → **Complete**
-   - Score = `null` → **Incomplete**, detail: `"[topic name] not attempted."`
-   - Score < max points → **Incomplete**, detail: `"[topic name] incomplete."`
+   - Score = `null` or less than max points → **Incomplete** (no separate detail string; the comment names the topic)
 
-Incomplete NRI gets **score 0 + `late_policy_status: "missing"`**; complete gets **1**. Because NRI can be made up late, an incomplete NRI comment **must state the makeup deadline**: `"Must complete by [due date + 4 weeks, or the grading-period close date if sooner] for makeup credit."`
+Incomplete NRI gets **score 0 + `late_policy_status: "missing"`**; complete gets **1**. Because NRI can be made up late, an incomplete NRI comment **must state the makeup deadline**: the due date + 4 weeks, or the grading-period close date if that is sooner, written as a plain date such as `October 4`.
 
 #### Makeup Check (Previous 4 Weeks)
 
@@ -225,7 +224,7 @@ Students can make up missed NRI assignments up to a month after they were due. C
 - **Membean — complete:** `"You did your Membean this week! " + progress line`
 - **Membean — incomplete:** `"You didn't do your Membean this week. [detail from Step 4, if any] " + progress line` — with no detail this is just `"You didn't do your Membean this week. " + progress line`
 - **NoRedInk — complete:** `"You did your NoRedInk this week! " + progress line`
-- **NoRedInk — incomplete:** `"You didn't do your NoRedInk this week. [detail from Step 5] Must complete by [deadline] for makeup credit. " + progress line`
+- **NoRedInk — incomplete:** `"You didn't do your NRI assignment this week: [topic name]. You must complete it by [deadline] for makeup credit. " + progress line`
 - **NoRedInk — makeup:** `"Makeup completed — [topic name]. " + progress line`
 - **Membean — break credit:** `"Credit applied from break training (week of [Mon–Sun dates]). " + progress line`
 
