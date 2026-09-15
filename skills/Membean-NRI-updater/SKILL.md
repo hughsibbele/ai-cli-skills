@@ -143,7 +143,7 @@ node ~/code/ai-cli-skills/skills/Membean-NRI-updater/scripts/prep.mjs --course <
 - The script needs the course's vault file. If it says there is no vault, run `list_students` on the course (that populates it), then rerun.
 - **If a prep file contains anything that looks like a real name, stop and tell the teacher; do not continue.**
 
-Report each course's summary to the teacher: matched / unmatched / ambiguous counts, unmatched row numbers, and how many roster members appear in no CSV. Unmatched rows are the teacher's to resolve (fix the CSV, add an alias, or skip).
+Report each course's summary to the teacher: matched / unmatched / ambiguous counts, unmatched row numbers, and how many roster members appear in no CSV. Unmatched rows are the teacher's to resolve (fix the CSV, add an alias, or skip). Capitalization never causes a mismatch (names are lowercased before matching). The script also accepts two fallbacks, recorded in each student's `match` field: `loose` (same last name, one first name is a prefix of the other — "Theo"/"Theodora") and `spelling` (exactly one letter differs in either name — "Aiden"/"Aidan"), each only when a single roster student fits. List every `loose` or `spelling` token in the summary so the teacher can confirm the pairing.
 
 ### Step 2: Identify Courses
 

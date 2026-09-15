@@ -16,8 +16,10 @@
  *
  * --aliases: optional two-column CSV, kept locally (never share it): first column is the name
  *   exactly as the Membean/NRI export shows it ("Last, First"), second is the Canvas
- *   sortable name ("Last, First"). Use it for nicknames the prefix fallback can't resolve
- *   (e.g. "Kate" for "Katherine"). Row numbers reported as unmatched tell you what to add.
+ *   sortable name ("Last, First"). Use it for names the fallbacks can't resolve — the script
+ *   already accepts a nickname prefix ("Kate" for "Katherine") or a one-letter spelling
+ *   difference ("Aiden" for "Aidan"), but not "Teddy" for "Theodora". Row numbers reported
+ *   as unmatched tell you what to add.
  *
  * Requires Node 18+. No dependencies.
  */
@@ -141,7 +143,23 @@ function match(last, first) {
     }));
   if (loose.length === 1) return { entry: loose[0], how: "loose" };
   if (loose.length > 1) return { entry: null, how: "ambiguous" };
+  // Fallback: a one-letter spelling difference in either name ("Aiden" vs "Aidan")
+  if (!nl || !nf) return null;
+  const spelling = rosterStudents.filter((r) => [...r.keys].some((k) => editDistance(k, key) === 1));
+  if (spelling.length === 1) return { entry: spelling[0], how: "spelling" };
+  if (spelling.length > 1) return { entry: null, how: "ambiguous" };
   return null;
+}
+
+/** Levenshtein distance. The "|" in a name key can't be part of a distance-1 edit between two keys. */
+function editDistance(a, b) {
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length];
 }
 
 /** Minimal RFC-4180 CSV parser (handles quoted fields, embedded commas/newlines, CRLF, BOM). */
@@ -276,10 +294,14 @@ const outPath = expand(opts.out ?? `prep-${opts.course}.json`);
 fs.writeFileSync(outPath, JSON.stringify(out, null, 2));
 
 const lines = [`Wrote ${outPath}`, `Roster (vault, non-teacher): ${rosterStudents.length}`];
-if (opts.membean.length) lines.push(`Membean: ${membean.students.length} matched, ${membean.unmatched.length} unmatched, ${membean.ambiguous.length} ambiguous` +
+const fallbackNote = (list) => {
+  const n = list.filter((s) => s.match === "loose" || s.match === "spelling").length;
+  return n ? ` (${n} by nickname/spelling fallback — confirm)` : "";
+};
+if (opts.membean.length) lines.push(`Membean: ${membean.students.length} matched${fallbackNote(membean.students)}, ${membean.unmatched.length} unmatched, ${membean.ambiguous.length} ambiguous` +
   (membean.unmatched.length ? ` — unmatched rows: ${membean.unmatched.map((u) => `${u.file}:${u.row}`).join(", ")}` : "") +
   (membean.ambiguous.length ? ` — ambiguous rows: ${membean.ambiguous.map((u) => `${u.file}:${u.row}`).join(", ")}` : ""));
-if (opts.nri) lines.push(`NoRedInk: ${nri.students.length} matched, ${nri.unmatched.length} unmatched, ${nri.ambiguous.length} ambiguous; ${nri.topics.length} topics` +
+if (opts.nri) lines.push(`NoRedInk: ${nri.students.length} matched${fallbackNote(nri.students)}, ${nri.unmatched.length} unmatched, ${nri.ambiguous.length} ambiguous; ${nri.topics.length} topics` +
   (nri.unmatched.length ? ` — unmatched rows: ${nri.unmatched.map((u) => u.row).join(", ")}` : "") +
   (nri.ambiguous.length ? ` — ambiguous rows: ${nri.ambiguous.map((u) => u.row).join(", ")}` : ""));
 lines.push(`Roster members in no CSV: ${roster_not_in_csvs.length}; test students: ${test_students.length}`);
