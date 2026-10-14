@@ -35,7 +35,7 @@ You are helping an Episcopal High School English teacher grade weekly Membean an
 - Due **Sunday at 10:00 PM Eastern** (`02:00Z` in EDT, `03:00Z` in EST)
 - Graded as **completion: 1 point max**; assignment groups are **Membean** (5%) and **NRI** or **NoRedInk** (5%)
 - Complete → **1/1**, with a progress comment (see Step 6)
-- Incomplete → **0/1 + `missing` flag**, with a comment giving the shortfall and running progress
+- Incomplete → **0/1**, with a comment giving the shortfall and running progress. NRI incompletes also carry the `missing` flag while they can still be made up; Membean incompletes never do (see *Missing flags*)
 - Submission type is **"No submission"** — the missing flag is set manually via the API (see Semester Credit Model)
 
 ### Course Context
@@ -85,16 +85,24 @@ A missed Membean *class* week can't be trained retroactively. But students can t
 - **Does NOT count:** the **spring exam week**. Membean and NRI both **end on the final Sunday before spring exams** — no assignment that week, no makeup credit.
 - A two-week break can earn **two** credits (one per break week in which the student meets the normal threshold).
 
-### Missing flags
+### Missing flags — only while a makeup is still possible
 
-- An incomplete Membean/NRI gets **score 0 AND `late_policy_status: "missing"`** in the weekly run.
+A `missing` flag tells the student there is something they can still do. Keep it only on work that can still be made up. Once a makeup is impossible, clear the flag and **keep the 0**.
+
+- **NRI incomplete, inside its makeup window:** score 0 **and** `late_policy_status: "missing"`.
+- **Membean incomplete:** score 0, **no** missing flag. A class week can never be completed late; break credit is applied in its own pass, not by the student finishing that week.
+- **Clean-up on every weekly run** (teacher's rule, 2026-10-14). Set `late_policy_status: "none"` with the score left alone on:
+  - every Membean assignment due to date that is still flagged missing (older runs flagged them), and
+  - every NRI assignment whose makeup deadline (due + 4 weeks, or the close date if sooner) has passed and that is still flagged missing. Run the makeup check first, so a completion that just came in becomes a 1 instead of a cleared 0.
+  - Test Students too: they show what a real student sees.
+  - Post no comment. Omit `score` from the call. Verified 2026-10-14: `grade_submission` with only `late_policy_status: "none"` leaves the score at 0 and `missing` reads false on re-read. If a flagged submission has **no** score (`score: null`, `missing: true`), send `score: 0` in the same call so it doesn't fall back to ungraded.
 - These assignments are **"No submission"** type. Canvas does **not** auto-flag no-submission assignments missing, but you **can** set `missing` manually via the API (that's the same call the Grade Detail Tray makes) — so set it explicitly. Verified 2026-09-07: a manual `missing` set through `grade_submission` sticks on no-submission assignments (re-read via `list_submissions` shows `missing: true`). If a future Canvas release stops honouring it, the fallback is to switch these assignments to **"On paper"** submission type.
 - **NRI missing comments must include the makeup deadline** (due date + 4 weeks) — see the late window below.
 
 ### Late / makeup completion
 
-- **NRI can be completed late**, within a **4-week window** after the due date. When a late completion appears, flip the grade **0 → 1** and **clear the missing flag**.
-- **Membean class weeks cannot be completed late** — the only recovery is break/exam-week makeup credit (above).
+- **NRI can be completed late**, within a **4-week window** after the due date. When a late completion appears, flip the grade **0 → 1** and **clear the missing flag**. When the window closes without one, clear the flag and keep the 0.
+- **Membean class weeks cannot be completed late** — the only recovery is break/exam-week makeup credit (above). That is why Membean zeros never carry the missing flag.
 
 ### Grading-period close dates cut every window short
 
@@ -178,13 +186,13 @@ For each entry in `membean.students`:
    - If both short → **Incomplete**, detail: `"[X]/[threshold] minutes, [X]% accuracy (60% needed)."`
    - Otherwise → **Complete**
 
-Incomplete Membean gets **score 0 + `late_policy_status: "missing"`**; complete gets **1**.
+Incomplete Membean gets **score 0, no missing flag** (it can't be made up late); complete gets **1**.
 
 **Dubious Minutes:** If `dubious_minutes` is non-zero, flag it in the summary (e.g., "Note: [X] dubious minutes flagged by Membean"). Still use the total minutes for evaluation — let the teacher decide whether to override.
 
 **Roster members in no CSV** (`roster_not_in_csvs`): list their tokens in the summary and leave them ungraded unless the teacher says otherwise.
 
-**Test Student** (`test_students` in the prep file): Canvas's built-in Test Student is in every course and never in a CSV. Grade it as a **missed week every run** — Membean **and** NRI — with the normal incomplete comment and the missing flag. The teacher uses Student View on it to show students what a missed week looks like. Its progress line will read 0 of Y; that's expected. Never excuse it at end of semester.
+**Test Student** (`test_students` in the prep file): Canvas's built-in Test Student is in every course and never in a CSV. Grade it as a **missed week every run** — Membean **and** NRI — with the normal incomplete comment, and the missing flag on NRI only (cleared like everyone else's when the window closes). The teacher uses Student View on it to show students what a missed week looks like. Its progress line will read 0 of Y; that's expected. Never excuse it at end of semester.
 
 ### Step 5: Process NoRedInk (FLC only)
 
@@ -206,6 +214,15 @@ Students can make up missed NRI assignments up to a month after they were due. C
 2. `list_submissions` on each; collect students currently at **0/1** or flagged missing.
 3. Check those students' `scores[topic]` in the prep file.
 4. If a student now has full marks → include in the summary as a **makeup to update**: change to **1**, **clear the missing flag** (`late_policy_status: "none"`), comment per Step 6.
+5. **Deadline passed between exports:** if an assignment's window closed after the previous export and the completion first shows up in this one, you can't tell whether it came in on time. List it as a decision for the teacher. On 2026-10-14 the teacher accepted such a makeup.
+
+#### Missing-flag clean-up (every run)
+
+After the makeup check, collect every submission that is still flagged missing but can no longer be made up (see *Missing flags*):
+- **Membean:** every assignment due to date, in every course.
+- **NRI:** assignments whose makeup deadline has passed.
+
+List the counts in the summary. Clear them with `late_policy_status: "none"` and no comment.
 
 ### Step 6: Build Each Student's Progress Comment
 
@@ -274,8 +291,15 @@ Prep file: [filename]
 ...
 ```
 
+```
+## Missing flags to clear (0s stay)
+
+- [Course] Membean: [N] flags across [weeks]
+- FLC NRI past window: [assignment] — [tokens]
+```
+
 End with:
-> **Summary: [X] Membean grades across [N] courses, [Y] NRI grades, [Z] NRI makeups. Proceed?**
+> **Summary: [X] Membean grades across [N] courses, [Y] NRI grades, [Z] NRI makeups, [W] missing flags cleared. Proceed?**
 
 ### Step 8: Apply Grades
 
@@ -283,16 +307,17 @@ End with:
 
 After confirmation, apply all grades. **Every** graded assignment carries its Step 6 comment. `student_id` is the numeric `user_id` from the prep file.
 
-**Complete (1/1, with comment)** — one `bulk_grade` call per assignment is fastest; it returns a Progress object, so re-read the submissions afterwards to confirm the scores landed:
+**Complete (1/1) and Membean incomplete (0/1, no flag), with comment** — one `bulk_grade` call per assignment is fastest; it returns a Progress object, so re-read the submissions afterwards to confirm the scores landed:
 ```
 bulk_grade(
   course_id: "<course_id>",
   assignment_id: "<assignment_id>",
-  grades: [{ student_id: "<user_id>", score: 1, comment: "<Step 6 'You did your ...' comment>" }, ...]
+  grades: [{ student_id: "<user_id>", score: 1, comment: "<Step 6 'You did your ...' comment>" },
+           { student_id: "<user_id>", score: 0, comment: "<Step 6 'You didn't do your Membean ...' comment>" }, ...]
 )
 ```
 
-**Incomplete (0/1, missing flag, with comment)** — must be `grade_submission`, because only it sets `late_policy_status`:
+**NRI incomplete (0/1, missing flag, with comment)** — must be `grade_submission`, because only it sets `late_policy_status`:
 ```
 grade_submission(
   course_id: "<course_id>",
@@ -316,10 +341,20 @@ grade_submission(
 )
 ```
 
+**Clear a missing flag that can no longer be made up (score untouched, no comment):**
+```
+grade_submission(
+  course_id: "<course_id>",
+  assignment_id: "<assignment_id>",
+  student_id: "<user_id>",
+  late_policy_status: "none"
+)
+```
+
 **Parallelize** these calls where possible — changes to different students are independent.
 
 After all grades are applied, **verify**: `list_submissions` on each touched assignment and confirm scores and `missing` flags match the plan. Then:
-> **Done — [X] Membean grades and [Y] NRI grades applied across [N] courses. [Z] makeups updated.**
+> **Done — [X] Membean grades and [Y] NRI grades applied across [N] courses. [Z] makeups updated, [W] missing flags cleared.**
 
 ---
 
@@ -329,8 +364,8 @@ Run this as its own pass when the teacher provides a **break/makeup CSV** (Membe
 
 1. **Count earned credits per student.** Each break/exam week (Mon–Sun) in which the student meets the **normal threshold** (45 min / 60%, or 30 min for FLC) earns **one** makeup credit — a two-week break can yield two. Membean's break report may aggregate the period differently than one row per week; if the week boundaries aren't clear, **ask the teacher** how to split it (one prep run per week is simplest).
 2. **Apply each credit as a 1/1**, in this priority order:
-   - **First → the student's previously-marked-missing Membean assignments** (earliest missing first): set score 1, clear the missing flag (`late_policy_status: "none"`), Step 6 break-credit comment.
-   - **If no missing assignments remain → the final Membean assignments of the semester** (latest first), same comment. This banks credit toward the 15-week requirement.
+   - **First → the student's Membean assignments scored 0** (earliest first; they carry no missing flag, so look for the 0 score): set score 1 with `late_policy_status: "none"` and the Step 6 break-credit comment.
+   - **If no zeros remain → the final Membean assignments of the semester** (latest first), same comment. This banks credit toward the 15-week requirement.
 3. Never apply more than one credit per assignment, and never exceed the student's total assignment count.
 4. **Mind the close date:** winter-break credit belongs to 1st-semester assignments and must be applied before that period closes.
 5. Present the proposed credits per student (which assignments, sourced from which break week) and **confirm before applying**.
