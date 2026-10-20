@@ -151,7 +151,7 @@ node ~/code/ai-cli-skills/skills/Membean-NRI-updater/scripts/prep.mjs --course <
 - The script needs the course's vault file. If it says there is no vault, run `list_students` on the course (that populates it), then rerun.
 - **If a prep file contains anything that looks like a real name, stop and tell the teacher; do not continue.**
 
-Report each course's summary to the teacher: matched / unmatched / ambiguous counts, unmatched row numbers, and how many roster members appear in no CSV. Unmatched rows are the teacher's to resolve (fix the CSV, add an alias, or skip). Capitalization never causes a mismatch (names are lowercased before matching). The script also accepts two fallbacks, recorded in each student's `match` field: `loose` (same last name, one first name is a prefix of the other — "Theo"/"Theodora") and `spelling` (exactly one letter differs in either name — "Aiden"/"Aidan"), each only when a single roster student fits. List every `loose` or `spelling` token in the summary so the teacher can confirm the pairing.
+Report each course's summary to the teacher: matched / unmatched / ambiguous counts, unmatched row numbers, and how many enrolled students appear in no CSV (check the prep list against the gradebook first; see Step 4). Unmatched rows are the teacher's to resolve (fix the CSV, add an alias, or skip). Capitalization never causes a mismatch (names are lowercased before matching). The script also accepts two fallbacks, recorded in each student's `match` field: `loose` (same last name, one first name is a prefix of the other — "Theo"/"Theodora") and `spelling` (exactly one letter differs in either name — "Aiden"/"Aidan"), each only when a single roster student fits. List every `loose` or `spelling` token in the summary so the teacher can confirm the pairing.
 
 ### Step 2: Identify Courses
 
@@ -190,7 +190,9 @@ Incomplete Membean gets **score 0, no missing flag** (it can't be made up late);
 
 **Dubious Minutes:** If `dubious_minutes` is non-zero, flag it in the summary (e.g., "Note: [X] dubious minutes flagged by Membean"). Still use the total minutes for evaluation — let the teacher decide whether to override.
 
-**Roster members in no CSV** (`roster_not_in_csvs`): list their tokens in the summary and leave them ungraded unless the teacher says otherwise.
+**Roster members in no CSV** (`roster_not_in_csvs`): the prep script's roster is the canvas-agent vault, which keeps everyone the MCP has ever seen in the course. That includes students who dropped, and staff accounts whose vault entry isn't labeled `teacher` (e.g. a teacher who also holds a student enrollment). Check each token against `list_submissions` on the current week's assignment, which lists only active, gradeable enrollments (you read it anyway for the existing-grades check and Step 6):
+- **In the gradebook** → an enrolled student missing from Membean/NRI, often a late add. List the token in the summary and leave them ungraded unless the teacher says otherwise.
+- **Not in the gradebook** → a dropped student or a staff account. Report only a count ("N vault entries not in the gradebook ignored"). Don't list the tokens, don't ask the teacher about them, and never edit the vault to remove them (it also drives anonymization).
 
 **Test Student** (`test_students` in the prep file): Canvas's built-in Test Student is in every course and never in a CSV. Grade it as a **missed week every run** — Membean **and** NRI — with the normal incomplete comment, and the missing flag on NRI only (cleared like everyone else's when the window closes). The teacher uses Student View on it to show students what a missed week looks like. Its progress line will read 0 of Y; that's expected. Never excuse it at end of semester.
 
@@ -269,7 +271,7 @@ Prep file: [filename] (from [Membean CSV name(s)])
 **Flagged:**
 - [Token]: [X] dubious minutes flagged by Membean
 - Unmatched CSV rows: [file:row, ...]
-- Roster members in no CSV: [tokens]
+- Enrolled but in no CSV: [tokens] ([N] vault entries not in the gradebook ignored)
 - Test Student [token]: graded as missed (demo account)
 ```
 
@@ -392,7 +394,7 @@ Run once near the semester end — for Membean/NRI that's the **Sunday before sp
 ## Edge Cases
 
 - **Unmatched or ambiguous CSV rows**: report the row numbers; the teacher fixes the CSV or adds an alias and reruns the prep script. Never guess a match yourself.
-- **Roster member in no CSV**: list the token; they may not be enrolled in Membean/NRI. Skip unless told otherwise.
+- **Roster member in no CSV**: check `list_submissions` first (see Step 4). In the gradebook → list the token; they may not be enrolled in Membean/NRI yet. Skip unless told otherwise. Not in the gradebook → dropped student or staff; count only.
 - **Canvas assignment already has grades**: show existing grades in the summary and ask before overwriting. If a student already has 1/1, don't downgrade.
 - **No `nri` block in the prep file**: skip the NRI section entirely — just process Membean.
 - **No `membean` block**: skip the Membean section — just process NRI.
